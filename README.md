@@ -9,7 +9,7 @@ A wrapper around the Craftax agent benchmark, for evaluating digital agents
 ## Craftax-Classic
 | LM | Algorithm | Reward (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| gpt-4o-mini | ReAct   |            2.17 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/crafter/test.py) |
+| gpt-4o-mini | ReAct   |            14.2 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/crafter/test.py) |
 
 
 ## Craftax-Full
