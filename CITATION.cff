@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Josh"
+  given-names: "Purtell"
+  orcid: "https://orcid.org/0000-0000-0000-0000"
+title: "Craftax-LM: Benchmarking LM Agents with Craftax"
+version: 0.0.1
+doi: 10.5281/zenodo.1234
+date-released: 2024-08-30
+url: "https://github.com/JoshuaPurtell/craftaxlm"
