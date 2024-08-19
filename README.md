@@ -15,7 +15,7 @@ A wrapper around the Craftax agent benchmark, for evaluating digital agents
 ## Craftax-Full
 | LM | Algorithm | Reward (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| gpt-4o-mini | ReAct   |            ??? | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/crafter/test.py) |
+| gpt-4o-mini | ReAct   |            01.2 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/crafter/test.py) |
 
 # Dev Instructions
 ```
@@ -33,7 +33,7 @@ debug.breakpoint()
 
 # 📚 Citation
 To learn more about Craftax, check out the paper [website](https://craftaxenv.github.io) here.
-To cite the underlying Craftax environment, please cite:
+To cite the underlying Craftax environment, see:
 ```
 @inproceedings{matthews2024craftax,
     author={Michael Matthews and Michael Beukman and Benjamin Ellis and Mikayel Samvelyan and Matthew Jackson and Samuel Coward and Jakob Foerster},
