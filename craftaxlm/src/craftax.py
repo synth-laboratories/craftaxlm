@@ -471,14 +471,13 @@ class CraftaxState:
         def process_inventory(inv_dict):
             processed = {}
             for key, value in inv_dict.items():
-                print("Key: ", key) 
-                print("Value: ", value)
                 if isinstance(value, dict):
                     processed[key] = process_inventory(value)
-                elif include_absent_inventory or value > 0:
+                elif isinstance(value, bool) and (include_absent_inventory or value):
                     processed[key] = value
+                elif (include_absent_inventory or value):
+                    processed[key] = value is not None
             return processed
-
         return process_inventory(self.inventory)
 
     def render_environment_to_text(self, include_absent_environment_attributes=True):
