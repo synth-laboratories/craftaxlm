@@ -7,6 +7,14 @@ pyenv virtualenv craftax_env
 poetry install
 ```
 
+When in doubt
+
+```
+from jax import debug
+...
+debug.breakpoint()
+```
+
 # 📚 Citation
 To learn more about Craftax, check out the paper [website](https://craftaxenv.github.io) here.
 To cite the underlying Craftax environment, please cite:

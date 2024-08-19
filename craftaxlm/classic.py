@@ -1,19 +1,56 @@
-import os
-import warnings
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Dict, Literal
 import jax
 from craftax.craftax.craftax_state import EnvState
 from craftax.craftax.constants import *
 from craftax.craftax_env import make_craftax_env_from_name
-from craftax.craftax.util.game_logic_utils import is_boss_vulnerable
-import json
 from craftaxlm.shared import (
     mob_id_to_name,
-    level_to_material,
-    level_to_enchantment,
-    get_armour_level,
 )
+
+classic_achievements = {
+    0: "Collect Wood",
+    1: "Place Table",
+    2: "Eat Cow",
+    3: "Collect Sapling",
+    4: "Collect Drink",
+    5: "Make Wood Pickaxe",
+    6: "Make Wood Sword",
+    7: "Place Plant",
+    8: "Defeat Zombie",
+    9: "Collect Stone",
+    10: "Place Stone",
+    11: "Eat Plant",
+    12: "Defeat Skeleton",
+    13: "Make Stone Pickaxe",
+    14: "Make Stone Sword",
+    15: "Wake Up",
+    16: "Place Furnace",
+    17: "Collect Coal",
+    18: "Collect Iron",
+    19: "Collect Diamond",
+    20: "Make Iron Pickaxe",
+    21: "Make Iron Sword",
+}
+classic_action_mapping = {
+    "noop": 0,
+    "left": 1,
+    "right": 2,
+    "up": 3,
+    "down": 4,
+    "do": 5,
+    "sleep": 6,
+    "place_stone": 7,
+    "place_table": 8,
+    "place_furnace": 9,
+    "place_plant": 10,
+    "make_wood_pickaxe": 11,
+    "make_stone_pickaxe": 12,
+    "make_iron_pickaxe": 13,
+    "make_wood_sword": 14,
+    "make_stone_sword": 15,
+    "make_iron_sword": 16,
+}
 
 
 @dataclass
@@ -38,7 +75,6 @@ class CraftaxClassicState:
         ]
         high_salience_mobs = ["skeleton", "zombie", "cow", "arrow"]
 
-        # Dev only
         unique_blocks = list(set([tile["block"] for tile in self.map]))
         if not set(unique_blocks).issubset(
             set(backdrop_block_types + low_salience_objects + high_salience_objects)
@@ -76,17 +112,18 @@ class CraftaxClassicState:
         )
 
         def describe_xy(x, y):
+            # THIS IS SO CONFUSING - X is UP and DOWN, Y is LEFT and RIGHT
             description = ""
-            if x < 0:
-                description += f"{-x} steps east"
-            elif x > 0:
-                description += f"{x} steps west"
+            if x > 0:
+                description += f"{x} steps down"
+            elif x < 0:
+                description += f"{-x} steps up"
             if (x != 0) and (y != 0):
                 description += " and "
             if y < 0:
-                description += f"{-y} steps south"
+                description += f"{-y} steps left"
             elif y > 0:
-                description += f"{y} steps north"
+                description += f"{y} steps right"
             return description
 
         periphery = []
@@ -109,11 +146,15 @@ class CraftaxClassicState:
                 for tile in self.map:
                     if tile["position"]["x"] == x and tile["position"]["y"] == y:
                         if tile["block"] in low_salience_objects:
-                            periphery.append((tile["block"], describe_xy(x, y)))
+                            periphery.append(
+                                tile["block"].capitalize() + " is " + describe_xy(x, y)
+                            )
                             if ignore_distant_low_salience:
                                 found = True
                         if "mob" in tile and tile["mob"] in low_salience_mobs:
-                            periphery.append((tile["mob"], describe_xy(x, y)))
+                            periphery.append(
+                                "A " + tile["mob"] + " is " + describe_xy(x, y)
+                            )
                             if ignore_distant_low_salience:
                                 found = True
 
@@ -121,32 +162,52 @@ class CraftaxClassicState:
         for tile in self.map:
             if tile["visible"] and tile["block"] in high_salience_objects:
                 high_salience.append(
-                    (
-                        tile["block"],
-                        describe_xy(tile["position"]["x"], tile["position"]["y"]),
-                    )
+                    tile["block"].capitalize()
+                    + " is "
+                    + describe_xy(tile["position"]["x"], tile["position"]["y"]),
                 )
             elif (
                 tile["visible"] and "mob" in tile and tile["mob"] in high_salience_mobs
             ):
                 high_salience.append(
-                    (
-                        tile["mob"],
-                        describe_xy(tile["position"]["x"], tile["position"]["y"]),
-                    )
+                    "A "
+                    + tile["mob"]
+                    + " is "
+                    + describe_xy(tile["position"]["x"], tile["position"]["y"])
                 )
+        facing_and_position = {
+            "up": "is one steps up",
+            "down": "is one steps down",
+            "left": "is one steps left",
+            "right": "is one steps right",
+        }
         return {
-            "backdrop": backdrop,
-            "periphery": periphery,
-            "high_salience": high_salience,
+            "terrain_underneath_you": backdrop,
+            "surroundings": periphery + high_salience,
+            "object_you_are_facing": (
+                [
+                    surrounding_object.split(" is")[0]
+                    for surrounding_object in periphery + high_salience
+                    if facing_and_position[self.player["direction_facing"]]
+                    in surrounding_object
+                ]
+                + ["No object directly in front of you"]
+            )[0],
         }
 
     def render_inventory_to_text(self, include_absent_inventory=True):
-        inventory = {}
-        for key, value in self.inventory.items():
-            if include_absent_inventory or value > 0:
-                inventory[key] = value
-        return inventory
+        def process_inventory(inv_dict):
+            processed = {}
+            for key, value in inv_dict.items():
+                if isinstance(value, dict):
+                    processed_sub = process_inventory(value)
+                    if processed_sub:
+                        processed[key] = processed_sub
+                elif include_absent_inventory or value > 0:
+                    processed[key] = value
+            return processed
+
+        return process_inventory(self.inventory)
 
     def render_environment_to_text(self, include_absent_environment_attributes=True):
         attributes_to_hide = []
@@ -313,7 +374,7 @@ def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
         "food": int(state.player_food),
         "drink": int(state.player_drink),
         "energy": int(state.player_energy),
-        "direction": Action(state.player_direction).name.lower(),
+        "direction_facing": Action(state.player_direction).name.lower(),
     }
 
     environment_data = {
@@ -349,8 +410,9 @@ def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
 
 
 class CraftaxClassicACI:
-    def __init__(self, seed=0, actions_to_start_with: List[int] = []):
-        rng = jax.random.PRNGKey(0)
+    def __init__(self, seed=0, actions_to_start_with: List[int] = [], verbose=True):
+        self.verbose = verbose
+        rng = jax.random.PRNGKey(seed)
         rng, _rng = jax.random.split(rng)
         self.rngs = jax.random.split(_rng, 3)
         self.reset()
@@ -359,11 +421,17 @@ class CraftaxClassicACI:
 
     def reset(self):
         self.env = make_craftax_env_from_name(
-            "Craftax-Classic-Symbolic-v1", auto_reset=True
+            "Craftax-Classic-Symbolic-v1", auto_reset=False
         )
         self.env_params = self.env.default_params
         obs, self.state = self.env.reset(self.rngs[0], self.env_params)
-        self.starting_obs = {"raw_obs": obs}
+        self.starting_obs = {
+            "state": render_craftax_classic_text_custom(
+                self.state
+            ).render_to_text_simple(verbose=self.verbose),
+            "reward": 0.0,
+            "done": False,
+        }
         self.action_history = []
         self.achievements = {}
         self.achievement_deltas = []
@@ -391,45 +459,57 @@ class CraftaxClassicACI:
         }
 
     def get_achievement_delta(self, achievements):
-        delta = {}
+        delta = []
         for key, value in achievements["achievements"].items():
             if key in self.achievements:
                 if value > self.achievements[key]:
-                    delta[key] = value - self.achievements[key]
-            else:
-                if value > 0:
-                    delta[key] = value
+                    delta.append(key)
         self.achievements = achievements["achievements"]
         return delta
+
+    def map_action_string_to_int(self, action_string: str) -> int:
+        return classic_action_mapping.get(action_string.lower(), 0)
 
     def _step(self, action):
         _, state, reward, done, info = self.env.step(
             self.rngs[2], self.state, action, self.env_params
         )
-        achievements = self.render_achivements(info)
+
+        achievements = {
+            "achievements": {
+                k: state.achievements[i] for i, k in classic_achievements.items()
+            }
+        }
         achievement_delta = self.get_achievement_delta(achievements)
+        if achievement_delta:
+            print(achievement_delta)
         self.achievement_deltas.append(achievement_delta)
         self.state = state
 
         step_info = {
-            "state": render_craftax_classic_text_custom(state),
+            "state": render_craftax_classic_text_custom(state).render_to_text_simple(
+                verbose=self.verbose
+            ),
             "reward": float(reward),
             "done": bool(done),
         }
         return step_info
 
-    def multistep(self, actions: List[int]) -> Tuple[List[Dict], List[float], bool]:
+    def multistep(self, actions: List[str]) -> Tuple[List[Dict], List[float], bool]:
         done = False
         step_infos = []
         rewards = []
         for action in actions:
-            step_info = self._step(action)
+            step_info = self._step(self.map_action_string_to_int(action))
             step_infos.append(step_info)
             rewards.append(step_info["reward"])
             done = step_info["done"]
             if done:
                 break
         return step_infos, rewards, done
+
+    def terminate(self):
+        return self.achievements
 
 
 if __name__ == "__main__":
