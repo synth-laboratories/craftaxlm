@@ -1,21 +1,38 @@
-import os
-import warnings
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Dict, Literal
 import jax
 from craftax.craftax.craftax_state import EnvState
 from craftax.craftax.constants import *
 from craftax.craftax_env import make_craftax_env_from_name
-from craftax.craftax.util.game_logic_utils import is_boss_vulnerable
-import json
-from craftaxlm.shared import (
+from craftaxlm.src.shared import (
     mob_id_to_name,
-    level_to_material,
-    level_to_enchantment,
-    get_armour_level,
 )
 
-craftax_action_mapping = {
+classic_achievements = {
+    0: "Collect Wood",
+    1: "Place Table",
+    2: "Eat Cow",
+    3: "Collect Sapling",
+    4: "Collect Drink",
+    5: "Make Wood Pickaxe",
+    6: "Make Wood Sword",
+    7: "Place Plant",
+    8: "Defeat Zombie",
+    9: "Collect Stone",
+    10: "Place Stone",
+    11: "Eat Plant",
+    12: "Defeat Skeleton",
+    13: "Make Stone Pickaxe",
+    14: "Make Stone Sword",
+    15: "Wake Up",
+    16: "Place Furnace",
+    17: "Collect Coal",
+    18: "Collect Iron",
+    19: "Collect Diamond",
+    20: "Make Iron Pickaxe",
+    21: "Make Iron Sword",
+}
+classic_action_mapping = {
     "noop": 0,
     "left": 1,
     "right": 2,
@@ -33,188 +50,30 @@ craftax_action_mapping = {
     "make_wood_sword": 14,
     "make_stone_sword": 15,
     "make_iron_sword": 16,
-    "rest": 17,
-    "descend": 18,
-    "ascend": 19,
-    "make_diamond_pickaxe": 20,
-    "make_diamond_sword": 21,
-    "make_iron_armour": 22,
-    "make_diamond_armour": 23,
-    "shoot_arrow": 24,
-    "make_arrow": 25,
-    "cast_fireball": 26,
-    "cast_iceball": 27,
-    "place_torch": 28,
-    "drink_potion_red": 29,
-    "drink_potion_green": 30,
-    "drink_potion_blue": 31,
-    "drink_potion_pink": 32,
-    "drink_potion_cyan": 33,
-    "drink_potion_yellow": 34,
-    "read_book": 35,
-    "enchant_sword": 36,
-    "enchant_armour": 37,
-    "make_torch": 38,
-    "level_up_dexterity": 39,
-    "level_up_strength": 40,
-    "level_up_intelligence": 41,
-    "enchant_bow": 42,
-}
-
-craftax_achievements = {
-    0: "collect_wood",
-    1: "place_table",
-    2: "eat_cow",
-    3: "collect_sapling",
-    4: "collect_drink",
-    5: "make_wood_pickaxe",
-    6: "make_wood_sword",
-    7: "place_plant",
-    8: "defeat_zombie",
-    9: "collect_stone",
-    10: "place_stone",
-    11: "eat_plant",
-    12: "defeat_skeleton",
-    13: "make_stone_pickaxe",
-    14: "make_stone_sword",
-    15: "wake_up",
-    16: "place_furnace",
-    17: "collect_coal",
-    18: "collect_iron",
-    19: "collect_diamond",
-    20: "make_iron_pickaxe",
-    21: "make_iron_sword",
-    22: "make_arrow",
-    23: "make_torch",
-    24: "place_torch",
-    25: "make_diamond_sword",
-    26: "make_iron_armour",
-    27: "make_diamond_armour",
-    28: "enter_gnomish_mines",
-    29: "enter_dungeon",
-    30: "enter_sewers",
-    31: "enter_vault",
-    32: "enter_troll_mines",
-    33: "enter_fire_realm",
-    34: "enter_ice_realm",
-    35: "enter_graveyard",
-    36: "defeat_gnome_warrior",
-    37: "defeat_gnome_archer",
-    38: "defeat_orc_solider",
-    39: "defeat_orc_mage",
-    40: "defeat_lizard",
-    41: "defeat_kobold",
-    42: "defeat_troll",
-    43: "defeat_deep_thing",
-    44: "defeat_pigman",
-    45: "defeat_fire_elemental",
-    46: "defeat_frost_troll",
-    47: "defeat_ice_elemental",
-    48: "damage_necromancer",
-    49: "defeat_necromancer",
-    50: "eat_bat",
-    51: "eat_snail",
-    52: "find_bow",
-    53: "fire_bow",
-    54: "collect_sapphire",
-    55: "learn_fireball",
-    56: "cast_fireball",
-    57: "learn_iceball",
-    58: "cast_iceball",
-    59: "collect_ruby",
-    60: "make_diamond_pickaxe",
-    61: "open_chest",
-    62: "drink_potion",
-    63: "enchant_sword",
-    64: "enchant_armour",
-    65: "defeat_knight",
-    66: "defeat_archer",
 }
 
 
 @dataclass
-class CraftaxState:
+class CraftaxClassicState:
     map: List[Dict]
     inventory: Dict
     player: Dict
     environment: Dict
 
     def render_map_to_text(self, ignore_distant_low_salience=True):
-        backdrop_block_types = [
-            "grass",
-            "sand",
-            "path",
-            "fire_grass",
-            "ice_grass",
-            "gravel",
-        ]
-        low_salience_objects = [
-            "stone",
-            "tree",
-            "wood",
-            "plant",
-            "wall",
-            "darkness",
-            "wall_moss",
-            "stalagmite",
-            "fire_tree",
-            "ice_shrub",
-            "grave",
-            "grave2",
-            "grave3",
-        ]
+        backdrop_block_types = ["grass", "sand"]
+        low_salience_objects = ["water", "stone", "tree", "wood", "path", "plant"]
         low_salience_mobs = []
-        low_salience_items = []
         high_salience_objects = [
-            "water",
-            "lava",
             "coal",
             "iron",
             "diamond",
-            "sapphire",
-            "ruby",
             "crafting_table",
             "furnace",
+            "lava",
             "ripe_plant",
-            "chest",
-            "fountain",
-            "enchantment_table_fire",
-            "enchantment_table_ice",
-            "necromancer",
-            "necromancer_vulnerable",
         ]
-        high_salience_items = []
-        high_salience_mobs = [
-            "Zombie",
-            "Gnome Warrior",
-            "Orc Soldier",
-            "Lizard",
-            "Knight",
-            "Troll",
-            "Pigman",
-            "Frost Troll",
-            "Cow",
-            "Bat",
-            "Snail",
-            "Skeleton",
-            "Gnome Archer",
-            "Orc Mage",
-            "Kobold",
-            "Archer",
-            "Deep Thing",
-            "Fire Elemental",
-            "Ice Elemental",
-            "Arrow",
-            "Dagger",
-            "Fireball",
-            "Iceball",
-            "Slimeball",
-            "Arrow (Player)",
-            "Dagger (Player)",
-            "Fireball (Player)",
-            "Iceball (Player)",
-            "Slimeball (Player)",
-        ]
+        high_salience_mobs = ["skeleton", "zombie", "cow", "arrow"]
 
         unique_blocks = list(set([tile["block"] for tile in self.map if "block" in tile]))
         if not set(unique_blocks).issubset(
@@ -224,16 +83,11 @@ class CraftaxState:
                 f"Unknown block types: {set(unique_blocks) - set(backdrop_block_types+low_salience_objects+high_salience_objects)}"
             )
         unique_mobs = list(set([tile["mob"] for tile in self.map if "mob" in tile]))
-        if not set(unique_mobs).issubset(set(low_salience_mobs + high_salience_mobs)):
-            raise ValueError(
-                f"Unknown mob types: {set(unique_mobs) - set(low_salience_mobs+high_salience_mobs)}"
-            )
-        unique_items = list(set([tile["item"] for tile in self.map if "item" in tile]))
-        if not set(unique_items).issubset(
-            set(low_salience_items + high_salience_items)
+        if not set(unique_mobs).issubset(
+            set(low_salience_mobs + high_salience_objects)
         ):
             raise ValueError(
-                f"Unknown item types: {set(unique_items) - set(low_salience_items+high_salience_items)}"
+                f"Unknown mob types: {set(unique_mobs) - set(low_salience_mobs+high_salience_objects)}"
             )
 
         def count_nearby_blocks(center_x, center_y, radius):
@@ -242,6 +96,8 @@ class CraftaxState:
                 dx = abs(tile["position"]["x"] - center_x)
                 dy = abs(tile["position"]["y"] - center_y)
                 if dx <= radius and dy <= radius:
+                    if not "block" in tile:
+                        continue
                     block_type = tile["block"]
                     if block_type in backdrop_block_types:
                         block_counts[block_type] = block_counts.get(block_type, 0) + 1
@@ -283,45 +139,44 @@ class CraftaxState:
             (1, 0),
             (1, 1),
         ]:
+            found = False
             for distance in range(1, 6):
+                if found:
+                    break
                 x = center_x + direction[0] * distance
                 y = center_y + direction[1] * distance
                 for tile in self.map:
-                    if not tile["visible"]:
-                        continue
                     if tile["position"]["x"] == x and tile["position"]["y"] == y:
                         if tile["block"] in low_salience_objects:
                             periphery.append(
-                                f"{tile['block'].capitalize()} is {describe_xy(x, y)}"
+                                tile["block"].capitalize() + " is " + describe_xy(x, y)
                             )
                             if ignore_distant_low_salience:
-                                break
+                                found = True
                         if "mob" in tile and tile["mob"] in low_salience_mobs:
-                            periphery.append(f"A {tile['mob']} is {describe_xy(x, y)}")
+                            periphery.append(
+                                "A " + tile["mob"] + " is " + describe_xy(x, y)
+                            )
                             if ignore_distant_low_salience:
-                                break
-                        if "item" in tile and tile["item"] in low_salience_items:
-                            periphery.append(f"A {tile['item']} is {describe_xy(x, y)}")
-                            if ignore_distant_low_salience:
-                                break
+                                found = True
 
         high_salience = []
         for tile in self.map:
-            if not tile["visible"]:
-                continue
-            if "mob" in tile and tile["mob"] in high_salience_mobs:
+            if tile["visible"] and tile["block"] in high_salience_objects:
                 high_salience.append(
-                    f"A {tile['mob']} is {describe_xy(tile['position']['x'], tile['position']['y'])}"
+                    tile["block"].capitalize()
+                    + " is "
+                    + describe_xy(tile["position"]["x"], tile["position"]["y"]),
                 )
-            if "item" in tile and tile["item"] in high_salience_items:
+            elif (
+                tile["visible"] and "mob" in tile and tile["mob"] in high_salience_mobs
+            ):
                 high_salience.append(
-                    f"A {tile['item']} is {describe_xy(tile['position']['x'], tile['position']['y'])}"
+                    "A "
+                    + tile["mob"]
+                    + " is "
+                    + describe_xy(tile["position"]["x"], tile["position"]["y"])
                 )
-            if tile["block"] in high_salience_objects:
-                high_salience.append(
-                    f"{tile['block'].capitalize()} is {describe_xy(tile['position']['x'], tile['position']['y'])}"
-                )
-
         facing_and_position = {
             "up": "is one steps up",
             "down": "is one steps down",
@@ -335,7 +190,7 @@ class CraftaxState:
                 [
                     surrounding_object.split(" is")[0]
                     for surrounding_object in periphery + high_salience
-                    if facing_and_position[self.player["direction"]]
+                    if facing_and_position[self.player["direction_facing"]]
                     in surrounding_object
                 ]
                 + ["No object directly in front of you"]
@@ -347,7 +202,9 @@ class CraftaxState:
             processed = {}
             for key, value in inv_dict.items():
                 if isinstance(value, dict):
-                    processed[key] = process_inventory(value)
+                    processed_sub = process_inventory(value)
+                    if processed_sub:
+                        processed[key] = processed_sub
                 elif include_absent_inventory or value > 0:
                     processed[key] = value
             return processed
@@ -355,13 +212,7 @@ class CraftaxState:
         return process_inventory(self.inventory)
 
     def render_environment_to_text(self, include_absent_environment_attributes=True):
-        attributes_to_hide = [
-            "learned_fireball",
-            "learned_iceball",
-            "floor",
-            "ladder_open",
-            "is_boss_vulnerable",
-        ]
+        attributes_to_hide = []
         environment = {}
         for key, value in self.environment.items():
             if key not in attributes_to_hide and (
@@ -470,152 +321,68 @@ class CraftaxState:
             raise ValueError(f"Unknown formatting: {formatting}")
 
 
-def render_craftax_text_custom(state: EnvState) -> CraftaxState:
-    obs_dim_array = jnp.array([OBS_DIM[0], OBS_DIM[1]], dtype=jnp.int32)
-    map = state.map[state.player_level]
-    padded_grid = jnp.pad(
-        map,
-        (MAX_OBS_DIM + 2, MAX_OBS_DIM + 2),
-        constant_values=BlockType.OUT_OF_BOUNDS.value,
-    )
-    tl_corner = state.player_position - obs_dim_array // 2 + MAX_OBS_DIM + 2
-    map_view = jax.lax.dynamic_slice(padded_grid, tl_corner, OBS_DIM)
-
-    padded_items_map = jnp.pad(
-        state.item_map[state.player_level],
-        (MAX_OBS_DIM + 2, MAX_OBS_DIM + 2),
-        constant_values=ItemType.NONE.value,
-    )
-    item_map_view = jax.lax.dynamic_slice(padded_items_map, tl_corner, OBS_DIM)
-
-    mob_types_per_class = 8
-    mob_map = jnp.zeros((*OBS_DIM, 5 * mob_types_per_class), dtype=jnp.int32)
-
-    # REALLY NEEDS TO BE SPED UP:
-    def _add_mob_to_map(carry, mob_index):
-        mob_map, mobs, mob_class_index = carry
-        local_position = (
-            mobs.position[mob_index]
-            - state.player_position
-            + jnp.array([OBS_DIM[0], OBS_DIM[1]]) // 2
-        )
-        on_screen = jnp.logical_and(
-            local_position >= 0, local_position < jnp.array([OBS_DIM[0], OBS_DIM[1]])
-        ).all()
-        on_screen *= mobs.mask[mob_index]
-        mob_identifier = mob_class_index * mob_types_per_class + mobs.type_id[mob_index]
-        mob_map = mob_map.at[local_position[0], local_position[1], mob_identifier].set(
-            on_screen.astype(jnp.int32)
-        )
-        return (mob_map, mobs, mob_class_index), None
-
-    for mob_type, mob_class_index in [
-        (state.melee_mobs, 0),
-        (state.passive_mobs, 1),
-        (state.ranged_mobs, 2),
-        (state.mob_projectiles, 3),
-        (state.player_projectiles, 4),
-    ]:
-        (mob_map, _, _), _ = jax.lax.scan(
-            _add_mob_to_map,
-            (
-                mob_map,
-                jax.tree_util.tree_map(lambda x: x[state.player_level], mob_type),
-                mob_class_index,
-            ),
-            jnp.arange(mob_type.mask.shape[1]),
-        )
-
-    padded_light_map = jnp.pad(
-        state.light_map[state.player_level],
-        (MAX_OBS_DIM + 2, MAX_OBS_DIM + 2),
-        constant_values=0.0,
-    )
-    light_map_view = jax.lax.dynamic_slice(padded_light_map, tl_corner, OBS_DIM) > 0.05
-
+def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
     map_data = []
-    for x in range(OBS_DIM[0]):
-        for y in range(OBS_DIM[1]):
+    for x in range(state.map.shape[0]):
+        for y in range(state.map.shape[1]):
+            if (
+                not max(
+                    abs(x - state.player_position[0]), abs(y - state.player_position[1])
+                )
+                <= 4
+            ):
+                continue
             tile = {
-                "position": {"x": y - OBS_DIM[1] // 2, "y": x - OBS_DIM[0] // 2},
-                "visible": bool(light_map_view[x, y]),
+                "position": {
+                    "x": x - state.player_position[0],
+                    "y": y - state.player_position[1],
+                },
+                "visible": max(
+                    abs(x - state.player_position[0]), abs(y - state.player_position[1])
+                )
+                <= 4,
+                "block": BlockType(state.map[x, y]).name.lower(),
             }
-            if light_map_view[x, y]:
-                if mob_map[x, y].max() > 0.5:
-                    tile["mob"] = mob_id_to_name(mob_map[x, y].argmax())
-                if item_map_view[x, y] != ItemType.NONE.value:
-                    tile["item"] = ItemType(item_map_view[x, y]).name.lower()
-                tile["block"] = BlockType(map_view[x, y]).name.lower()
+            if state.mob_map[x, y].max() > 0.5:
+                tile["mob"] = mob_id_to_name(state.mob_map[x, y].argmax())
             map_data.append(tile)
+
     inventory_data = {
         "resources": {
-            "wood": state.inventory.wood,
-            "stone": state.inventory.stone,
-            "coal": state.inventory.coal,
-            "iron": state.inventory.iron,
-            "diamond": state.inventory.diamond,
-            "sapphire": state.inventory.sapphire,
-            "ruby": state.inventory.ruby,
-            "sapling": state.inventory.sapling,
-            "torch": state.inventory.torches,
-            "arrow": state.inventory.arrows,
-            "book": state.inventory.books,
+            "wood": int(state.inventory.wood),
+            "stone": int(state.inventory.stone),
+            "coal": int(state.inventory.coal),
+            "iron": int(state.inventory.iron),
+            "diamond": int(state.inventory.diamond),
+            "sapling": int(state.inventory.sapling),
         },
         "tools": {},
-        "potions": {
-            "red": state.inventory.potions[0],
-            "green": state.inventory.potions[1],
-            "blue": state.inventory.potions[2],
-            "pink": state.inventory.potions[3],
-            "cyan": state.inventory.potions[4],
-            "yellow": state.inventory.potions[5],
-        },
-        "armor": {},
     }
 
-    if state.inventory.pickaxe > 0:
-        inventory_data["tools"]["pickaxe"] = {
-            "material": level_to_material(state.inventory.pickaxe)
-        }
-    if state.inventory.sword > 0:
-        inventory_data["tools"]["sword"] = {
-            "material": level_to_material(state.inventory.sword),
-            "enchantment": level_to_enchantment(state.sword_enchantment),
-        }
-    if state.inventory.bow > 0:
-        inventory_data["tools"]["bow"] = {
-            "enchantment": level_to_enchantment(state.bow_enchantment)
-        }
+    inventory_data["tools"]["pickaxe"] = {
+        "wood": int(state.inventory.wood_pickaxe),
+        "stone": int(state.inventory.stone_pickaxe),
+        "iron": int(state.inventory.iron_pickaxe),
+    }
 
-    for i, piece in enumerate(["helmet", "chestplate", "leggings", "boots"]):
-        if state.inventory.armour[i] > 0:
-            inventory_data["armor"][piece] = {
-                "material": get_armour_level(state.inventory.armour[i]),
-                "enchantment": level_to_enchantment(state.armour_enchantments[i]),
-            }
+    inventory_data["tools"]["sword"] = {
+        "wood": int(state.inventory.wood_sword),
+        "stone": int(state.inventory.stone_sword),
+        "iron": int(state.inventory.iron_sword),
+    }
+
     player_data = {
-        "health": state.player_health,
-        "food": state.player_food,
-        "drink": state.player_drink,
-        "energy": state.player_energy,
-        "mana": state.player_mana,
-        "xp": state.player_xp,
-        "dexterity": state.player_dexterity,
-        "strength": state.player_strength,
-        "intelligence": state.player_intelligence,
-        "direction": Action(state.player_direction).name.lower(),
+        "health": int(state.player_health),
+        "food": int(state.player_food),
+        "drink": int(state.player_drink),
+        "energy": int(state.player_energy),
+        "direction_facing": Action(state.player_direction).name.lower(),
     }
 
     environment_data = {
-        "light_level": state.light_level,
-        "is_sleeping": state.is_sleeping,
-        "is_resting": state.is_resting,
-        "learned_fireball": state.learned_spells[0],
-        "learned_iceball": state.learned_spells[1],
-        "floor": state.player_level,
-        "ladder_open": state.monsters_killed[state.player_level]
-        >= MONSTERS_KILLED_TO_CLEAR_LEVEL,
-        "is_boss_vulnerable": is_boss_vulnerable(state),
+        "light_level": float(state.light_level),
+        "is_sleeping": bool(state.is_sleeping),
+        "floor": 0,  # Assuming single floor for now
     }
 
     def to_json_friendly(data):
@@ -636,7 +403,7 @@ def render_craftax_text_custom(state: EnvState) -> CraftaxState:
         else:
             return data
 
-    return CraftaxState(
+    return CraftaxClassicState(
         map=to_json_friendly(map_data),
         inventory=to_json_friendly(inventory_data),
         player=to_json_friendly(player_data),
@@ -644,7 +411,7 @@ def render_craftax_text_custom(state: EnvState) -> CraftaxState:
     )
 
 
-class CraftaxACI:
+class CraftaxClassicACI:
     def __init__(self, seed=0, actions_to_start_with: List[int] = [], verbose=True):
         self.verbose = verbose
         rng = jax.random.PRNGKey(seed)
@@ -655,13 +422,17 @@ class CraftaxACI:
             self.go_forward(actions_to_start_with)
 
     def reset(self):
-        self.env = make_craftax_env_from_name("Craftax-Symbolic-v1", auto_reset=True)
+        self.env = make_craftax_env_from_name(
+            "Craftax-Classic-Symbolic-v1", auto_reset=False
+        )
         self.env_params = self.env.default_params
         obs, self.state = self.env.reset(self.rngs[0], self.env_params)
         self.starting_obs = {
-            "state": render_craftax_text_custom(self.state).render_to_text_simple(
-                verbose=self.verbose
-            )
+            "state": render_craftax_classic_text_custom(
+                self.state
+            ).render_to_text_simple(verbose=self.verbose),
+            "reward": 0.0,
+            "done": False,
         }
         self.action_history = []
         self.achievements = {}
@@ -699,23 +470,26 @@ class CraftaxACI:
         return delta
 
     def map_action_string_to_int(self, action_string: str) -> int:
-        return craftax_action_mapping.get(action_string.lower(), 0)
+        return classic_action_mapping.get(action_string.lower(), 0)
 
     def _step(self, action):
         _, state, reward, done, info = self.env.step(
             self.rngs[2], self.state, action, self.env_params
         )
+
         achievements = {
             "achievements": {
-                k: state.achievements[i] for i, k in craftax_achievements.items()
+                k: state.achievements[i] for i, k in classic_achievements.items()
             }
         }
         achievement_delta = self.get_achievement_delta(achievements)
+        if achievement_delta:
+            print(achievement_delta)
         self.achievement_deltas.append(achievement_delta)
         self.state = state
 
         step_info = {
-            "state": render_craftax_text_custom(state).render_to_text_simple(
+            "state": render_craftax_classic_text_custom(state).render_to_text_simple(
                 verbose=self.verbose
             ),
             "reward": float(reward),
@@ -741,19 +515,8 @@ class CraftaxACI:
 
 
 if __name__ == "__main__":
-    craftax_aci = CraftaxACI()
+    craftax_aci = CraftaxClassicACI()
     action = 0
-    import time
-
-    ts = []
-    for i in range(20):
-        t0 = time.time()
-        step_info = craftax_aci._step(action)
-        ts.append(time.time() - t0)
-        print("Took", ts[-1])
-        if step_info["done"]:
-            break
-    print("Mean time", sum(ts) / len(ts))
-    print("Q3 time", sorted(ts)[int(len(ts) * 0.75)])
-    print("P90 time", sorted(ts)[int(len(ts) * 0.90)])
-    print("P99 time", sorted(ts)[int(len(ts) * 0.99)])
+    step_info = craftax_aci._step(action)
+    print(len(step_info["state"].map))
+    print(step_info["state"].render_to_text_simple())
