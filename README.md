@@ -1,21 +1,28 @@
 # Craftax LM
-A wrapper around the Craftax agent benchmark, for evaluating digital agents
+A wrapper around the Craftax agent benchmark, for evaluating digital agents.
+
 <p align="middle">
   <img src="https://raw.githubusercontent.com/MichaelTMatthews/Craftax/main/images/dungeon_crawling.gif" width="200" />
 </p>
+
+# Usage
+First, download the package with ```pip install craftaxlm```. Next, import the agent-computer interface of your choice via
+```
+from craftaxlm import CraftaxACI, CraftaxClassicACI
+```
+This package is early in development, so for implementation examples, please refer to the [baseline ReAct implementation](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/craftax)
 
 # Leaderboard
 
 ## Craftax-Classic
 | LM | Algorithm | Reward (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| gpt-4o-mini | ReAct   |            14.2 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/crafter/test.py) |
-
+| gpt-4o-mini | ReAct   |            18.4 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/craftax/test.py) |
 
 ## Craftax-Full
 | LM | Algorithm | Reward (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| gpt-4o-mini | ReAct   |            01.2 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/crafter/test.py) |
+| gpt-4o-mini | ReAct   |            02.9 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/craftax/test.py) |
 
 # Dev Instructions
 ```
@@ -40,5 +47,14 @@ To cite the underlying Craftax environment, see:
     title = {Craftax: A Lightning-Fast Benchmark for Open-Ended Reinforcement Learning},
     booktitle = {International Conference on Machine Learning ({ICML})},
     year = {2024}
+}
+```
+To cite the Crafter benchmark, see:
+```
+@article{hafner2021crafter,
+  title={Benchmarking the Spectrum of Agent Capabilities},
+  author={Danijar Hafner},
+  year={2021},
+  journal={arXiv preprint arXiv:2109.06780},
 }
 ```
