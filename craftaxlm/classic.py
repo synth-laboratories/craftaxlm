@@ -75,7 +75,7 @@ class CraftaxClassicState:
         ]
         high_salience_mobs = ["skeleton", "zombie", "cow", "arrow"]
 
-        unique_blocks = list(set([tile["block"] for tile in self.map]))
+        unique_blocks = list(set([tile["block"] for tile in self.map if "block" in tile]))
         if not set(unique_blocks).issubset(
             set(backdrop_block_types + low_salience_objects + high_salience_objects)
         ):
