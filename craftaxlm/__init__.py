@@ -1,4 +1,4 @@
 from .src.classic import CraftaxClassicACI
-from .src.craftax import CraftaxACI
+from .src.full import CraftaxACI
 
 __all__ = ["CraftaxClassicACI", "CraftaxACI"]
