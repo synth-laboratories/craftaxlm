@@ -4,9 +4,8 @@ import jax
 from craftax.craftax.craftax_state import EnvState
 from craftax.craftax.constants import *
 from craftax.craftax_env import make_craftax_env_from_name
-from craftaxlm.src.shared import (
-    mob_id_to_name,
-)
+from craftaxlm.src.shared import mob_id_to_name, CraftaxState, CraftaxBaseACI
+
 
 classic_achievements = {
     0: "Collect Wood",
@@ -54,7 +53,7 @@ classic_action_mapping = {
 
 
 @dataclass
-class CraftaxClassicState:
+class CraftaxClassicState(CraftaxState):
     map: List[Dict]
     inventory: Dict
     player: Dict
@@ -75,7 +74,9 @@ class CraftaxClassicState:
         ]
         high_salience_mobs = ["skeleton", "zombie", "cow", "arrow"]
 
-        unique_blocks = list(set([tile["block"] for tile in self.map if "block" in tile]))
+        unique_blocks = list(
+            set([tile["block"] for tile in self.map if "block" in tile])
+        )
         if not set(unique_blocks).issubset(
             set(backdrop_block_types + low_salience_objects + high_salience_objects)
         ):
@@ -221,105 +222,6 @@ class CraftaxClassicState:
                 environment[key] = value
         return environment
 
-    def render_json_to_text_via_md(self, json_data: Dict) -> str:
-        keys_to_not_format = [
-            "resources",
-            "tools",
-            "potions",
-            "armor",
-            "player",
-            "environment",
-        ]
-
-        def format_as_list(data, level):
-            list_output = ""
-            if isinstance(data, dict):
-                for k, v in data.items():
-                    if isinstance(v, dict):
-                        list_output += (
-                            f"{' ' * level}- {k}:\n{format_as_list(v, level + 2)}"
-                        )
-                    else:
-                        list_output += f"{' ' * level}- {k}: {v}\n"
-            elif isinstance(data, list):
-                for item in data:
-                    list_output += f"{' ' * level}- {item}\n"
-            else:
-                list_output += f"{' ' * level}- {data}\n"
-            return list_output
-
-        def dict_to_md(data, level=1, parent_key=""):
-            md_output = ""
-            for key, value in data.items():
-                full_key = f"{parent_key}.{key}" if parent_key else key
-                md_output += f"{'#' * level} {key.capitalize()}\n"
-                if key in keys_to_not_format:
-                    md_output += format_as_list(value, level)
-                elif isinstance(value, dict):
-                    md_output += dict_to_md(value, level + 1, full_key)
-                elif isinstance(value, list):
-                    for item in value:
-                        if isinstance(item, dict):
-                            md_output += dict_to_md(item, level + 1, full_key)
-                        else:
-                            md_output += f"- {item}\n"
-                else:
-                    md_output += f"{value}\n"
-            return md_output
-
-        return dict_to_md(json_data).strip()
-
-    def render_json_to_text_via_xml(self, json_data: Dict) -> str:
-        def dict_to_xml(data):
-            xml_output = ""
-            for key, value in data.items():
-                xml_output += f"<{key}>"
-                if isinstance(value, dict):
-                    xml_output += dict_to_xml(value)
-                elif isinstance(value, list):
-                    for item in value:
-                        if isinstance(item, dict):
-                            xml_output += dict_to_xml(item)
-                        else:
-                            xml_output += str(item)
-                else:
-                    xml_output += str(value)
-                xml_output += f"</{key}>"
-            return xml_output
-
-        return dict_to_xml(json_data).strip()
-
-    def render_to_text_simple(
-        self, verbose=True, formatting: Literal["md", "xml"] = "md"
-    ) -> str:
-        rendered_map = self.render_map_to_text(ignore_distant_low_salience=not verbose)
-        rendered_inventory = self.render_inventory_to_text(
-            include_absent_inventory=verbose
-        )
-        rendered_environment = self.render_environment_to_text(
-            include_absent_environment_attributes=verbose
-        )
-        if formatting == "md":
-            return self.render_json_to_text_via_md(
-                {
-                    "map": rendered_map,
-                    "inventory": rendered_inventory,
-                    "player": self.player,
-                    "environment": rendered_environment,
-                }
-            )
-        elif formatting == "xml":
-            return self.render_json_to_text_via_xml(
-                {
-                    "map": rendered_map,
-                    "inventory": rendered_inventory,
-                    "player": self.player,
-                    "environment": rendered_environment,
-                }
-            )
-        else:
-            raise ValueError(f"Unknown formatting: {formatting}")
-
 
 def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
     map_data = []
@@ -411,107 +313,39 @@ def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
     )
 
 
-class CraftaxClassicACI:
-    def __init__(self, seed=0, actions_to_start_with: List[int] = [], verbose=True):
-        self.verbose = verbose
-        rng = jax.random.PRNGKey(seed)
-        rng, _rng = jax.random.split(rng)
-        self.rngs = jax.random.split(_rng, 3)
-        self.reset()
-        if actions_to_start_with:
-            self.go_forward(actions_to_start_with)
-
-    def reset(self):
-        self.env = make_craftax_env_from_name(
+class CraftaxClassicACI(CraftaxBaseACI):
+    def make_env(self):
+        return make_craftax_env_from_name(
             "Craftax-Classic-Symbolic-v1", auto_reset=False
         )
-        self.env_params = self.env.default_params
-        obs, self.state = self.env.reset(self.rngs[0], self.env_params)
-        self.starting_obs = {
+
+    def create_starting_obs(self):
+        return {
             "state": render_craftax_classic_text_custom(
                 self.state
             ).render_to_text_simple(verbose=self.verbose),
             "reward": 0.0,
             "done": False,
         }
-        self.action_history = []
-        self.achievements = {}
-        self.achievement_deltas = []
-
-    def go_back(self, n_steps):
-        actions = self.action_history[-n_steps:]
-        self.reset()
-        return self.go_forward(actions)
-
-    def go_forward(self, actions):
-        step_info = {}
-        for action in actions:
-            step_info = self._step(action)
-        return step_info
-
-    def render_achivements(self, info):
-        achievements = {}
-        for key, value in info.items():
-            if key.startswith("Achievements/"):
-                achievement_name = key.split("/")[-1]
-                achievements[achievement_name] = float(value)
-        return {
-            "achievements": achievements,
-            "discount": float(info.get("discount", 1.0)),
-        }
-
-    def get_achievement_delta(self, achievements):
-        delta = []
-        for key, value in achievements["achievements"].items():
-            if key in self.achievements:
-                if value > self.achievements[key]:
-                    delta.append(key)
-        self.achievements = achievements["achievements"]
-        return delta
 
     def map_action_string_to_int(self, action_string: str) -> int:
         return classic_action_mapping.get(action_string.lower(), 0)
 
-    def _step(self, action):
-        _, state, reward, done, info = self.env.step(
-            self.rngs[2], self.state, action, self.env_params
-        )
-
-        achievements = {
+    def get_achievements(self, state):
+        return {
             "achievements": {
                 k: state.achievements[i] for i, k in classic_achievements.items()
             }
         }
-        achievement_delta = self.get_achievement_delta(achievements)
-        if achievement_delta:
-            print(achievement_delta)
-        self.achievement_deltas.append(achievement_delta)
-        self.state = state
 
-        step_info = {
+    def create_step_info(self, state, reward, done):
+        return {
             "state": render_craftax_classic_text_custom(state).render_to_text_simple(
                 verbose=self.verbose
             ),
             "reward": float(reward),
             "done": bool(done),
         }
-        return step_info
-
-    def multistep(self, actions: List[str]) -> Tuple[List[Dict], List[float], bool]:
-        done = False
-        step_infos = []
-        rewards = []
-        for action in actions:
-            step_info = self._step(self.map_action_string_to_int(action))
-            step_infos.append(step_info)
-            rewards.append(step_info["reward"])
-            done = step_info["done"]
-            if done:
-                break
-        return step_infos, rewards, done
-
-    def terminate(self):
-        return self.achievements
 
 
 if __name__ == "__main__":
