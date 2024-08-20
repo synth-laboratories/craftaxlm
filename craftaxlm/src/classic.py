@@ -72,7 +72,7 @@ class CraftaxClassicState(CraftaxState):
             "lava",
             "ripe_plant",
         ]
-        high_salience_mobs = ["skeleton", "zombie", "cow", "arrow"]
+        high_salience_mobs = ["Skeleton", "Zombie", "Cow", "Arrow"]
 
         unique_blocks = list(
             set([tile["block"] for tile in self.map if "block" in tile])
@@ -84,11 +84,9 @@ class CraftaxClassicState(CraftaxState):
                 f"Unknown block types: {set(unique_blocks) - set(backdrop_block_types+low_salience_objects+high_salience_objects)}"
             )
         unique_mobs = list(set([tile["mob"] for tile in self.map if "mob" in tile]))
-        if not set(unique_mobs).issubset(
-            set(low_salience_mobs + high_salience_objects)
-        ):
+        if not set(unique_mobs).issubset(set(low_salience_mobs + high_salience_mobs)):
             raise ValueError(
-                f"Unknown mob types: {set(unique_mobs) - set(low_salience_mobs+high_salience_objects)}"
+                f"Unknown mob types: {set(unique_mobs) - set(low_salience_mobs+high_salience_mobs)}"
             )
 
         def count_nearby_blocks(center_x, center_y, radius):
@@ -352,5 +350,3 @@ if __name__ == "__main__":
     craftax_aci = CraftaxClassicACI()
     action = 0
     step_info = craftax_aci._step(action)
-    print(len(step_info["state"].map))
-    print(step_info["state"].render_to_text_simple())
