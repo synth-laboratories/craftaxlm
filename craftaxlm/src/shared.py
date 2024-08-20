@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, List, Literal
 from abc import abstractclassmethod
+from typing import List, Tuple, Dict
+import jax
 
 
 def mob_id_to_name(id):
@@ -222,10 +224,6 @@ class CraftaxState:
             raise ValueError(f"Unknown formatting: {formatting}")
 
 
-from typing import List, Tuple, Dict
-import jax
-
-
 class CraftaxBaseACI:
     def __init__(self, seed=0, actions_to_start_with: List[int] = [], verbose=True):
         self.verbose = verbose
@@ -291,7 +289,7 @@ class CraftaxBaseACI:
         )
         achievements = self.get_achievements(state)
         achievement_delta = self.get_achievement_delta(achievements)
-        if achievement_delta:
+        if achievement_delta and self.verbose:
             print(achievement_delta)
         self.achievement_deltas.append(achievement_delta)
         self.state = state

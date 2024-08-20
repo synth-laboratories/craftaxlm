@@ -58,3 +58,9 @@ To cite the Crafter benchmark, see:
   journal={arXiv preprint arXiv:2109.06780},
 }
 ```
+
+# Contributing
+```
+uv venv craftaxlm-dev
+source craftaxlm-dev/bin/activate
+```
