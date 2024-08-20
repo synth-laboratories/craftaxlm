@@ -63,4 +63,5 @@ To cite the Crafter benchmark, see:
 ```
 uv venv craftaxlm-dev
 source craftaxlm-dev/bin/activate
+uv run ruff format .
 ```

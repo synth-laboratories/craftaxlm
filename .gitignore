@@ -39,3 +39,8 @@ ENV/
 # Custom
 **/*.pyc
 .ruff_cache
+
+venv/
+craftaxlm-dev/
+*.pyc
+__pycache__/
