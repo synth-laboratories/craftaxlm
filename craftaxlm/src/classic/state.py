@@ -1,55 +1,17 @@
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Dict, Literal
-import jax
-from craftax.craftax.craftax_state import EnvState
+from typing import Dict, List
+
 from craftax.craftax.constants import *
-from craftax.craftax_env import make_craftax_env_from_name
-from craftaxlm.src.shared import mob_id_to_name, CraftaxState, CraftaxBaseACI
+from craftax.craftax.craftax_state import EnvState
 
-
-classic_achievements = {
-    0: "Collect Wood",
-    1: "Place Table",
-    2: "Eat Cow",
-    3: "Collect Sapling",
-    4: "Collect Drink",
-    5: "Make Wood Pickaxe",
-    6: "Make Wood Sword",
-    7: "Place Plant",
-    8: "Defeat Zombie",
-    9: "Collect Stone",
-    10: "Place Stone",
-    11: "Eat Plant",
-    12: "Defeat Skeleton",
-    13: "Make Stone Pickaxe",
-    14: "Make Stone Sword",
-    15: "Wake Up",
-    16: "Place Furnace",
-    17: "Collect Coal",
-    18: "Collect Iron",
-    19: "Collect Diamond",
-    20: "Make Iron Pickaxe",
-    21: "Make Iron Sword",
-}
-classic_action_mapping = {
-    "noop": 0,
-    "left": 1,
-    "right": 2,
-    "up": 3,
-    "down": 4,
-    "do": 5,
-    "sleep": 6,
-    "place_stone": 7,
-    "place_table": 8,
-    "place_furnace": 9,
-    "place_plant": 10,
-    "make_wood_pickaxe": 11,
-    "make_stone_pickaxe": 12,
-    "make_iron_pickaxe": 13,
-    "make_wood_sword": 14,
-    "make_stone_sword": 15,
-    "make_iron_sword": 16,
-}
+from craftaxlm.src.classic.metadata import (
+    CRAFTAX_CLASSIC_BACKDROP_BLOCK_TYPES,
+    CRAFTAX_CLASSIC_HIGH_SALIENCE_MOBS,
+    CRAFTAX_CLASSIC_HIGH_SALIENCE_OBJECTS,
+    CRAFTAX_CLASSIC_LOW_SALIENCE_MOBS,
+    CRAFTAX_CLASSIC_LOW_SALIENCE_OBJECTS,
+)
+from craftaxlm.src.shared import CraftaxState, mob_id_to_name
 
 
 @dataclass
@@ -60,33 +22,25 @@ class CraftaxClassicState(CraftaxState):
     environment: Dict
 
     def render_map_to_text(self, ignore_distant_low_salience=True):
-        backdrop_block_types = ["grass", "sand"]
-        low_salience_objects = ["water", "stone", "tree", "wood", "path", "plant"]
-        low_salience_mobs = []
-        high_salience_objects = [
-            "coal",
-            "iron",
-            "diamond",
-            "crafting_table",
-            "furnace",
-            "lava",
-            "ripe_plant",
-        ]
-        high_salience_mobs = ["Skeleton", "Zombie", "Cow", "Arrow"]
-
         unique_blocks = list(
             set([tile["block"] for tile in self.map if "block" in tile])
         )
         if not set(unique_blocks).issubset(
-            set(backdrop_block_types + low_salience_objects + high_salience_objects)
+            set(
+                CRAFTAX_CLASSIC_BACKDROP_BLOCK_TYPES
+                + CRAFTAX_CLASSIC_LOW_SALIENCE_OBJECTS
+                + CRAFTAX_CLASSIC_HIGH_SALIENCE_OBJECTS
+            )
         ):
             raise ValueError(
-                f"Unknown block types: {set(unique_blocks) - set(backdrop_block_types+low_salience_objects+high_salience_objects)}"
+                f"Unknown block types: {set(unique_blocks) - set(CRAFTAX_CLASSIC_BACKDROP_BLOCK_TYPES + CRAFTAX_CLASSIC_LOW_SALIENCE_OBJECTS + CRAFTAX_CLASSIC_HIGH_SALIENCE_OBJECTS)}"
             )
         unique_mobs = list(set([tile["mob"] for tile in self.map if "mob" in tile]))
-        if not set(unique_mobs).issubset(set(low_salience_mobs + high_salience_mobs)):
+        if not set(unique_mobs).issubset(
+            set(CRAFTAX_CLASSIC_LOW_SALIENCE_MOBS + CRAFTAX_CLASSIC_HIGH_SALIENCE_MOBS)
+        ):
             raise ValueError(
-                f"Unknown mob types: {set(unique_mobs) - set(low_salience_mobs+high_salience_mobs)}"
+                f"Unknown mob types: {set(unique_mobs) - set(CRAFTAX_CLASSIC_LOW_SALIENCE_MOBS + CRAFTAX_CLASSIC_HIGH_SALIENCE_MOBS)}"
             )
 
         def count_nearby_blocks(center_x, center_y, radius):
@@ -98,7 +52,7 @@ class CraftaxClassicState(CraftaxState):
                     if not "block" in tile:
                         continue
                     block_type = tile["block"]
-                    if block_type in backdrop_block_types:
+                    if block_type in CRAFTAX_CLASSIC_BACKDROP_BLOCK_TYPES:
                         block_counts[block_type] = block_counts.get(block_type, 0) + 1
             return block_counts
 
@@ -108,9 +62,11 @@ class CraftaxClassicState(CraftaxState):
             max(nearby_blocks, key=nearby_blocks.get) if nearby_blocks else "unknown"
         )
 
-        low_salience_objects.extend(
-            [object for object in backdrop_block_types if object != backdrop]
-        )
+        low_salience_objects = CRAFTAX_CLASSIC_LOW_SALIENCE_OBJECTS + [
+            object
+            for object in CRAFTAX_CLASSIC_BACKDROP_BLOCK_TYPES
+            if object != backdrop
+        ]
 
         def describe_xy(x, y):
             # THIS IS SO CONFUSING - X is UP and DOWN, Y is LEFT and RIGHT
@@ -152,7 +108,10 @@ class CraftaxClassicState(CraftaxState):
                             )
                             if ignore_distant_low_salience:
                                 found = True
-                        if "mob" in tile and tile["mob"] in low_salience_mobs:
+                        if (
+                            "mob" in tile
+                            and tile["mob"] in CRAFTAX_CLASSIC_LOW_SALIENCE_MOBS
+                        ):
                             periphery.append(
                                 "A " + tile["mob"] + " is " + describe_xy(x, y)
                             )
@@ -161,14 +120,19 @@ class CraftaxClassicState(CraftaxState):
 
         high_salience = []
         for tile in self.map:
-            if tile["visible"] and tile["block"] in high_salience_objects:
+            if (
+                tile["visible"]
+                and tile["block"] in CRAFTAX_CLASSIC_HIGH_SALIENCE_OBJECTS
+            ):
                 high_salience.append(
                     tile["block"].capitalize()
                     + " is "
                     + describe_xy(tile["position"]["x"], tile["position"]["y"]),
                 )
             elif (
-                tile["visible"] and "mob" in tile and tile["mob"] in high_salience_mobs
+                tile["visible"]
+                and "mob" in tile
+                and tile["mob"] in CRAFTAX_CLASSIC_HIGH_SALIENCE_MOBS
             ):
                 high_salience.append(
                     "A "
@@ -309,44 +273,3 @@ def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
         player=to_json_friendly(player_data),
         environment=to_json_friendly(environment_data),
     )
-
-
-class CraftaxClassicACI(CraftaxBaseACI):
-    def make_env(self):
-        return make_craftax_env_from_name(
-            "Craftax-Classic-Symbolic-v1", auto_reset=False
-        )
-
-    def create_starting_obs(self):
-        return {
-            "state": render_craftax_classic_text_custom(
-                self.state
-            ).render_to_text_simple(verbose=self.verbose),
-            "reward": 0.0,
-            "done": False,
-        }
-
-    def map_action_string_to_int(self, action_string: str) -> int:
-        return classic_action_mapping.get(action_string.lower(), 0)
-
-    def get_achievements(self, state):
-        return {
-            "achievements": {
-                k: state.achievements[i] for i, k in classic_achievements.items()
-            }
-        }
-
-    def create_step_info(self, state, reward, done):
-        return {
-            "state": render_craftax_classic_text_custom(state).render_to_text_simple(
-                verbose=self.verbose
-            ),
-            "reward": float(reward),
-            "done": bool(done),
-        }
-
-
-if __name__ == "__main__":
-    craftax_aci = CraftaxClassicACI()
-    action = 0
-    step_info = craftax_aci._step(action)
