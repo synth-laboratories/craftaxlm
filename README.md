@@ -19,7 +19,7 @@ In order to make experiments reasonable to run across a range of LMs, currently 
     ```
     sum(ln(1 + P(1_achievement_obtained)) for achievement in achievements) / (sum(ln(2) * len(achievements)))
     ```
-    where P(1_achievement_obtained) is the probability of the achievement being obtained in a single rollout. The key idea is that difficult achievements ought to weigh more heavily in the score.
+    where P(1_achievement_obtained) is the probability of the achievement being obtained in a single rollout. The key idea is that incremental progress towards difficult achievements ought to weigh more heavily in the score.
 
 ## Craftax-Classic
 | LM | Algorithm | Score (% max) |                                              Code                                               |
