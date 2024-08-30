@@ -1,5 +1,5 @@
 # Craftax LM
-A wrapper around the Craftax agent benchmark, for evaluating digital agents.
+A wrapper around the Craftax agent benchmark, for evaluating digital agents over extremely long time horizons.
 
 <p align="middle">
   <img src="https://raw.githubusercontent.com/MichaelTMatthews/Craftax/main/images/dungeon_crawling.gif" width="200" />
