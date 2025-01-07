@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="craftaxlm",
-    version="0.0.4",
+    version="0.0.14",
     packages=find_packages(),
     install_requires=[
         "absl-py==2.1.0",

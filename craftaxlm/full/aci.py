@@ -1,12 +1,12 @@
 from craftax.craftax.constants import *
 from craftax.craftax_env import make_craftax_env_from_name
 
-from craftaxlm.src.full.metadata import (
+from craftaxlm.full.metadata import (
     CRAFTAX_FULL_ACHIEVEMENTS,
     CRAFTAX_FULL_ACTION_MAPPING,
 )
-from craftaxlm.src.full.state import render_craftax_text_custom
-from craftaxlm.src.shared import (
+from craftaxlm.full.state import render_craftax_text_custom
+from craftaxlm.shared import (
     CraftaxBaseACI,
 )
 

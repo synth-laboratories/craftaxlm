@@ -6,16 +6,16 @@ from craftax.craftax.constants import *
 from craftax.craftax.craftax_state import EnvState
 from craftax.craftax.util.game_logic_utils import is_boss_vulnerable
 
-from craftaxlm.src.full.metadata import (
+from craftaxlm.full.metadata import (
     CRAFTAX_FULL_BACKDROP_BLOCK_TYPES,
-    CRAFTAX_FULL_LOW_SALIENCE_OBJECTS,
-    CRAFTAX_FULL_LOW_SALIENCE_MOBS,
-    CRAFTAX_FULL_LOW_SALIENCE_ITEMS,
-    CRAFTAX_FULL_HIGH_SALIENCE_OBJECTS,
     CRAFTAX_FULL_HIGH_SALIENCE_ITEMS,
     CRAFTAX_FULL_HIGH_SALIENCE_MOBS,
+    CRAFTAX_FULL_HIGH_SALIENCE_OBJECTS,
+    CRAFTAX_FULL_LOW_SALIENCE_ITEMS,
+    CRAFTAX_FULL_LOW_SALIENCE_MOBS,
+    CRAFTAX_FULL_LOW_SALIENCE_OBJECTS,
 )
-from craftaxlm.src.shared import (
+from craftaxlm.shared import (
     CraftaxState,
     get_armour_level,
     level_to_enchantment,

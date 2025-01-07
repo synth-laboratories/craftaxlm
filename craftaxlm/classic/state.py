@@ -1,17 +1,24 @@
+import dataclasses
 from dataclasses import dataclass
-from typing import Dict, List
+from pathlib import Path
+from typing import Dict, List, Optional
 
+import imageio
+import jax.numpy as jnp
+import numpy as np
 from craftax.craftax.constants import *
+from craftax.craftax.constants import BLOCK_PIXEL_SIZE_HUMAN
 from craftax.craftax.craftax_state import EnvState
+from craftax.craftax_classic.renderer import render_craftax_pixels
 
-from craftaxlm.src.classic.metadata import (
+from craftaxlm.classic.metadata import (
     CRAFTAX_CLASSIC_BACKDROP_BLOCK_TYPES,
     CRAFTAX_CLASSIC_HIGH_SALIENCE_MOBS,
     CRAFTAX_CLASSIC_HIGH_SALIENCE_OBJECTS,
     CRAFTAX_CLASSIC_LOW_SALIENCE_MOBS,
     CRAFTAX_CLASSIC_LOW_SALIENCE_OBJECTS,
 )
-from craftaxlm.src.shared import CraftaxState, mob_id_to_name
+from craftaxlm.shared import CraftaxState, mob_id_to_name
 
 
 @dataclass
@@ -20,6 +27,20 @@ class CraftaxClassicState(CraftaxState):
     inventory: Dict
     player: Dict
     environment: Dict
+    recorder: Optional["CraftaxRecorder"] = None
+
+    @classmethod
+    def create(cls, *args, enable_recording=False, **kwargs):
+        recorder = CraftaxRecorder() if enable_recording else None
+        return cls(*args, **kwargs, recorder=recorder)
+
+    def record_if_enabled(self, state: EnvState):
+        if self.recorder is not None:
+            self.recorder.record_frame(state)
+
+    def save_recording(self, filename="episode.mp4", fps=30):
+        if self.recorder is not None:
+            self.recorder.save_video(filename, fps)
 
     def render_map_to_text(self, ignore_distant_low_salience=True):
         unique_blocks = list(
@@ -185,7 +206,9 @@ class CraftaxClassicState(CraftaxState):
         return environment
 
 
-def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
+def render_craftax_classic_text_custom(
+    state: EnvState, enable_recording=False
+) -> CraftaxClassicState:
     map_data = []
     for x in range(state.map.shape[0]):
         for y in range(state.map.shape[1]):
@@ -246,7 +269,7 @@ def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
     environment_data = {
         "light_level": float(state.light_level),
         "is_sleeping": bool(state.is_sleeping),
-        "floor": 0,  # Assuming single floor for now
+        "floor": 0,  # Hardcode to 0 since player_level isn't in EnvState
     }
 
     def to_json_friendly(data):
@@ -267,9 +290,36 @@ def render_craftax_classic_text_custom(state: EnvState) -> CraftaxClassicState:
         else:
             return data
 
-    return CraftaxClassicState(
+    craftax_state = CraftaxClassicState.create(
         map=to_json_friendly(map_data),
         inventory=to_json_friendly(inventory_data),
         player=to_json_friendly(player_data),
         environment=to_json_friendly(environment_data),
+        enable_recording=enable_recording,
     )
+
+    # Record frame if recording is enabled
+    craftax_state.record_if_enabled(state)
+
+    return craftax_state
+
+
+class CraftaxRecorder:
+    def __init__(self, save_dir="recordings"):
+        self.save_dir = Path(save_dir)
+        self.save_dir.mkdir(parents=True, exist_ok=True)
+        self.frames = []
+
+    def record_frame(self, state):
+        pixels = render_craftax_pixels(state, BLOCK_PIXEL_SIZE_HUMAN)
+        # Convert from JAX array to numpy and ensure uint8 format
+        frame = np.array(pixels).astype(np.uint8)
+        self.frames.append(frame)
+        # print("Added frame - total frames:", len(self.frames))
+
+    def save_video(self, filename, fps=1):
+        save_path = self.save_dir / filename
+        imageio.mimsave(str(save_path), self.frames, fps=fps, codec="mpeg4")
+        print(f"Saved video to {save_path} - {len(self.frames)} frames")
+        # Clear frames after saving
+        self.frames = []

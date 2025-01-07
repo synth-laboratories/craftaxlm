@@ -1,6 +1,6 @@
 [project]
 name = "craftaxlm"
-version = "0.0.5"
+version = "0.0.14"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -10,8 +10,14 @@ dependencies = [
     "ruff>=0.6.1",
     "build>=1.2.1",
     "twine>=5.1.1",
+    "tqdm>=4.67.1",
+]
+license = {text = "MIT"}
+authors = [
+    {name = "Josh Purtell", email = "jmvpurtell@gmail.com"}
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
