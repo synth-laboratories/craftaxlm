@@ -5,6 +5,15 @@ A wrapper around the Craftax agent benchmark, for evaluating digital agents over
   <img src="https://raw.githubusercontent.com/MichaelTMatthews/Craftax/main/images/dungeon_crawling.gif" width="200" />
 </p>
 
+## Craftax-Classic
+| LM | Algorithm | Score (% max) |                                              Code                                               |
+|:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
+| claude-3-7-sonnet-latest | ReAct   |            18.0 | |
+| claude-3-5-sonnet-20241022 | ReAct   |            17.8 | |
+| claude-3-5-sonnet-20240620 | ReAct   |            15.7 | |
+| o3-mini | ReAct   |            12.6 | |
+| gpt-4o | ReAct   |            7.0 | |
+
 # Usage
 First, download the package with ```pip install craftaxlm```. Next, import the agent-computer interface of your choice via
 ```
@@ -20,15 +29,6 @@ In order to make experiments reasonable to run across a range of LMs, currently 
     sum(ln(1 + P(1_achievement_obtained)) for achievement in achievements) / (sum(ln(2) * len(achievements)))
     ```
     where P(1_achievement_obtained) is the probability of the achievement being obtained in a single rollout. The key idea is that incremental progress towards difficult achievements ought to weigh more heavily in the score.
-
-## Craftax-Classic
-| LM | Algorithm | Score (% max) |                                              Code                                               |
-|:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| claude-3-7-sonnet-latest | ReAct   |            18.0 | |
-| claude-3-5-sonnet-20241022 | ReAct   |            17.8 | |
-| claude-3-5-sonnet-20240620 | ReAct   |            15.7 | |
-| o3-mini | ReAct   |            12.6 | |
-| gpt-4o | ReAct   |            7.0 | |
 
 ## Craftax-Full
 | LM | Algorithm | Score (% max) |                                              Code                                               |
