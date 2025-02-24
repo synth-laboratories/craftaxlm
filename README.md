@@ -14,6 +14,8 @@ A wrapper around the Craftax agent benchmark, for evaluating digital agents over
 | o3-mini | ReAct   |            12.6 | |
 | gpt-4o | ReAct   |            7.0 | |
 
+* Note - this is a limited evaluation where trajectories are terminated after 30 api calls, or roughly 150 in-game steps. 10 trajectories are rolled-out, yielding a log-weighted score as per the Crafter [paper](https://arxiv.org/abs/2109.06780).
+
 # Usage
 First, download the package with ```pip install craftaxlm```. Next, import the agent-computer interface of your choice via
 ```
