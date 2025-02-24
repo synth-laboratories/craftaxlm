@@ -34,7 +34,7 @@ class EpisodeRecorder:
 
         save_path = self.save_dir / filename
         imageio.mimsave(str(save_path), self.frames, fps=fps, codec="mpeg4")
-        print(f"Saved {len(self.frames)} frames to {save_path}")
+        #print(f"Saved {len(self.frames)} frames to {save_path}")
         self.frames = []  # Clear frames after saving
         return save_path
 

@@ -13,6 +13,7 @@ from craftaxlm.shared import (
 
 class CraftaxACI(CraftaxBaseACI):
     def make_env(self):
+        raise NotImplementedError("Update this with the same debug applied to Classic")
         return make_craftax_env_from_name("Craftax-Symbolic-v1", auto_reset=True)
 
     def create_starting_obs(self):

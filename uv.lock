@@ -312,7 +312,7 @@ wheels = [
 
 [[package]]
 name = "craftaxlm"
-version = "0.0.12"
+version = "0.0.20"
 source = { editable = "." }
 dependencies = [
     { name = "build" },

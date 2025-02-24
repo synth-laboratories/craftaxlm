@@ -1,7 +1,8 @@
-from dataclasses import dataclass
-from typing import Dict, List, Literal
+import math
 from abc import abstractclassmethod
-from typing import List, Tuple, Dict
+from dataclasses import dataclass
+from typing import Dict, List, Literal, Tuple
+
 import jax
 
 
@@ -107,7 +108,8 @@ def get_armour_level(level):
 
 @dataclass
 class CraftaxState:
-    map: List[Dict]
+    map_full: List[Dict]
+    map_compact: str
     inventory: Dict
     player: Dict
     environment: Dict
@@ -193,9 +195,18 @@ class CraftaxState:
         return dict_to_xml(json_data).strip()
 
     def render_to_text_simple(
-        self, verbose=True, formatting: Literal["md", "xml"] = "md"
+        self,
+        verbose=True,
+        formatting: Literal["md", "xml"] = "md",
+        map_format: Literal["full", "compact"] = "full",
     ) -> str:
-        rendered_map = self.render_map_to_text(ignore_distant_low_salience=not verbose)
+        if map_format == "full":
+            rendered_map = self.render_map_to_text(
+                ignore_distant_low_salience=not verbose
+            )
+        else:
+            rendered_map = self.map_compact
+
         rendered_inventory = self.render_inventory_to_text(
             include_absent_inventory=verbose
         )
@@ -225,7 +236,16 @@ class CraftaxState:
 
 
 class CraftaxBaseACI:
-    def __init__(self, seed=0, actions_to_start_with: List[int] = [], verbose=True):
+    def __init__(
+        self,
+        seed=0,
+        actions_to_start_with: List[int] = [],
+        verbose=True,
+        formatting: Literal["md", "xml"] = "md",
+        map_format: Literal["full", "compact"] = "full",
+    ):
+        self.formatting = formatting
+        self.map_format = map_format
         self.verbose = verbose
         rng = jax.random.PRNGKey(seed)
         rng, _rng = jax.random.split(rng)
@@ -319,3 +339,5 @@ class CraftaxBaseACI:
 
     def terminate(self):
         return self.achievements
+
+
