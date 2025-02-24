@@ -24,13 +24,15 @@ In order to make experiments reasonable to run across a range of LMs, currently 
 ## Craftax-Classic
 | LM | Algorithm | Score (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| gpt-4o | ReAct   |            29.6 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/craftax/test.py) |
-| gpt-4o-mini | ReAct   |            18.4 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/craftax/test.py) |
+| claude-3-7-sonnet-latest | ReAct   |            18.0 | |
+| claude-3-5-sonnet-20241022 | ReAct   |            17.8 | |
+| claude-3-5-sonnet-20240620 | ReAct   |            15.7 | |
+| o3-mini | ReAct   |            12.6 | |
+| gpt-4o | ReAct   |            7.0 | |
 
 ## Craftax-Full
 | LM | Algorithm | Score (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| gpt-4o-mini | ReAct   |            02.9 | [CraftaxLM_Baselines](https://github.com/JoshuaPurtell/Apropos/blob/main/apropos/bench/craftax/test.py) |
 
 # Dev Instructions
 ```
