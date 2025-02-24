@@ -8,7 +8,7 @@ A wrapper around the Craftax agent benchmark, for evaluating digital agents over
 ## Craftax-Classic
 | LM | Algorithm | Score (% max) |                                              Code                                               |
 |:----------|---------------:|:-----------------------------------------------------------------------------------------------:|:---------------------------------------:|
-| claude-3-7-sonnet-latest | ReAct   |            18.0 | |
+| claude-3-7-sonnet-latest (default) | ReAct   |            18.0 | |
 | claude-3-5-sonnet-20241022 | ReAct   |            17.8 | |
 | claude-3-5-sonnet-20240620 | ReAct   |            15.7 | |
 | o3-mini | ReAct   |            12.6 | |
